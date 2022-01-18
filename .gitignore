@@ -2,3 +2,5 @@
 *LORData*
 .ipynb_checkpoints/*
 *result*
+img/*
+__pycache__/*
