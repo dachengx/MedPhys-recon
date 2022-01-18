@@ -2,8 +2,27 @@ import numpy as np
 from tqdm import tqdm
 import numba
 
+
 # @numba.njit
 def sensitivity_map(t, pixels_wall, x_num):
+    """
+    使用 Siddon 算法计算传输矩阵
+    Parameters
+    ----------
+    t : array
+        投影
+    pixels_wall : list
+        像素在各个维度的边界坐标
+    x_num : list
+        传输矩阵的 index
+
+    Returns
+    -------
+    idx : array
+        传输矩阵中具有非 0 相交长度的 index
+    line : array
+        相交长度，与 idx 长度相同
+    """
     dim = len(t) // 2
     d = 0
     for j in range(dim):
@@ -44,9 +63,32 @@ def sensitivity_map(t, pixels_wall, x_num):
     vali = np.full(x_dig.shape[1], True)
     for j, wall in enumerate(pixels_wall):
         vali &= ((x_dig[j] >= 0) & (x_dig[j] < len(wall) - 1))
-    return pixels_dig[vali], np.diff(np.sort(d_frac))[vali]
+    idx = pixels_dig[vali]
+    line = np.diff(np.sort(d_frac))[vali]
+    return idx, line
+
 
 def osem(p, m, iteration, L):
+    """
+    使用 OS-EM 算法进行迭代重建
+    Parameters
+    ----------
+    p : array
+        投影
+    m : array
+        传输矩阵
+    iteration : int
+        迭代次数
+    L : int
+        分割投影的份数
+
+    Returns
+    -------
+    f_list : list
+        重建结果列表
+    d_list : list
+        前后两次迭代的重建结果按像素的最大差异
+    """
     f = np.full(m.shape[1], p.sum() / m.sum())
     f_list = [f]
     d_list = []
@@ -62,7 +104,26 @@ def osem(p, m, iteration, L):
             #     break
     return f_list, d_list
 
+
 def mlem(p, m, iteration):
+    """
+    使用 ML-EM 算法进行迭代重建
+    Parameters
+    ----------
+    p : array
+        投影
+    m : array
+        传输矩阵
+    iteration : int
+        迭代次数
+
+    Returns
+    -------
+    f_list : list
+        重建结果列表
+    d_list : list
+        前后两次迭代的重建结果按像素的最大差异
+    """
     f = np.full(m.shape[1], p.sum() / m.sum()).astype(np.float32)
     f_list = [f]
     d_list = []
